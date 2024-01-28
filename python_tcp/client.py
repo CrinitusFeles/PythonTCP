@@ -55,6 +55,11 @@ class SocketClient:
             logger.error(f'\nLost connection with server: {err}')
             self.disconnect()
             return False
+        except socket.gaierror as err:
+            logger.error(f'Undefined hostname: {self._host}! Check DNS '\
+                         f'settings or check hostname address\n{err}')
+            return False
+
 
         self._running_flag = True
         self._thread = Thread(target=self._routine, daemon=True)
