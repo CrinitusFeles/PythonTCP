@@ -15,17 +15,18 @@ class SocketServer:
     def __init__(self, host: str, port: int) -> None:
         self.host: str = host
         self.port: int = port
+        self.transmited: Event = Event(bytes)
         self.received: Event = Event(ReceivedData)
         self.client_disconnected: Event = Event(tuple)
         self.client_connected: Event = Event(tuple)
         self._server: asyncio.Server
         self.clients: dict[str, list[StreamWriter]] = {}
 
-    async def connect(self) -> None:
+    async def start_server(self) -> None:
         self._server: Server = await start_server(self.handler, self.host,
                                                   self.port)
         async with self._server:
-            logger.debug(f'KPA Gateway server listening at '\
+            logger.info(f'KPA Gateway server listening at '\
                          f'{self.host}:{self.port}')
             await self._server.serve_forever()
 
@@ -80,4 +81,4 @@ class SocketServer:
 
 if __name__ == '__main__':
     server = SocketServer('localhost', 8087)
-    asyncio.run(server.connect())
+    asyncio.run(server.start_server())
