@@ -89,13 +89,23 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         host, port = sys.argv[1], int(sys.argv[2])
     else:
-        host, port = "localhost", 7777
+        host, port = "rpi", 7777
     client = SocketClient(host, port)
+    client.received.subscribe(lambda data: print(data.hex(' ').upper()))
     try:
         client.connect()
         while True:
             in_data: str = input('>')
-            client.send(in_data.encode())
+            if in_data == 'short':
+                cmd = 'F0 0C 00 04 00 01 00 A6 0F'
+            elif in_data == 'tmi':
+                cmd = 'F0 0C 00 04 00 01 01 A1 0F'
+            elif in_data == 'sys':
+                cmd = 'F0 0C 00 04 00 01 04 BA 0F'
+            else:
+                print(f'udefined data: {in_data}')
+                continue
+            client.send(bytes.fromhex(cmd))
     except KeyboardInterrupt:
         client.disconnect()
         print('shutdown')
