@@ -8,8 +8,10 @@ class EchoClientProtocol(asyncio.Protocol):
         self.on_con_lost: asyncio.Future = on_con_lost
 
     def connection_made(self, transport: _ProactorSocketTransport):
+        print('Connected to server')
+        loop = asyncio.get_running_loop()
+        loop.create_task(cli(transport))
         transport.write(self.message)
-        print(f'Data sent: {self.message}')
 
     def data_received(self, data):
         print(f'Data received: {data.decode()}')
@@ -21,14 +23,11 @@ class EchoClientProtocol(asyncio.Protocol):
 async def ainput(prompt: str = "") -> str:
     return await asyncio.to_thread(input, prompt)
 
-# async def cli(aioserial_instance: AioSerial):
-#     while True:
-#         data: str = await ainput('> ')
-#         try:
-#             await aioserial_instance.write_async(data.encode())
-#         except serialutil.SerialException as err:
-#             print(err)
-#             break
+async def cli(transport: _ProactorSocketTransport):
+    while True:
+        data: str = await ainput('> ')
+        print(f'Sending data: {data}')
+        transport.write(data.encode())
 
 
 async def main():
