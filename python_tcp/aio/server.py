@@ -54,7 +54,7 @@ class SocketServer:
         writer.close()
         self.client_disconnected.emit(addr)
         del self.clients[addr[0]]
-        logger.debug("Disconnected by", addr)
+        logger.debug(f"Disconnected by {addr}")
 
     def get_connected_clients(self):
         return self.clients
