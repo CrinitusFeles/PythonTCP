@@ -70,7 +70,7 @@ class SocketServer:
                     logger.debug(f'gateway TX to {client_ip}: {data}')
                 except ConnectionError:
                     logger.debug("Client suddenly closed, cannot send")
-                    self._disconnection_handler(sock)
+                    await self._disconnection_handler(sock)
         else:
             logger.error(f'Client {client_ip} not connected')
 
