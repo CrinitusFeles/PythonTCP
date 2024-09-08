@@ -9,7 +9,7 @@ from loguru import logger
 class ReceivedData:
     sock: asyncio.StreamWriter
     msg: bytes
-
+    addr: str
 
 class SocketServer:
     def __init__(self, host: str, port: int) -> None:
@@ -34,7 +34,7 @@ class SocketServer:
                       writer: asyncio.StreamWriter) -> None:
         addr: tuple[str, int] = writer.get_extra_info("peername")
         self.clients.setdefault(addr[0], []).append(writer)
-        self.client_connected.emit(addr)
+        await self.client_connected.aemit(addr)
         logger.debug(f"Connected by {addr}")
         while True:
             try:
@@ -43,16 +43,16 @@ class SocketServer:
                     logger.warning(f'Got empty data from {addr}')
                     break
                 logger.debug(f'from {addr} got msg: {data}')
-                self.received.emit(ReceivedData(writer, data))
+                await self.received.aemit(ReceivedData(writer, data, addr[0]))
             except ConnectionError:
                 logger.debug(f"Client suddenly closed while receiving from {addr}")
                 break
-        self._disconnection_handler(writer)
+        await self._disconnection_handler(writer)
 
-    def _disconnection_handler(self, writer: StreamWriter) -> None:
+    async def _disconnection_handler(self, writer: StreamWriter) -> None:
         addr: tuple[str, int] = writer.get_extra_info("peername")
         writer.close()
-        self.client_disconnected.emit(addr)
+        await self.client_disconnected.aemit(addr)
         del self.clients[addr[0]]
         logger.debug(f"Disconnected by {addr}")
 
@@ -68,7 +68,7 @@ class SocketServer:
                     await sock.drain()
                 except ConnectionError:
                     logger.debug("Client suddenly closed, cannot send")
-                    self._disconnection_handler(sock)
+                    await self._disconnection_handler(sock)
         else:
             logger.error(f'Client {client_ip} not connected')
 
