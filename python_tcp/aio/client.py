@@ -28,6 +28,7 @@ class SocketClient():
         self._connection_status: bool = False
         self.writer: asyncio.StreamWriter
         self.reader: asyncio.StreamReader
+        self.read_task: asyncio.Task
 
     async def _read_routine(self):
         while self._running_flag:
@@ -38,7 +39,11 @@ class SocketClient():
             logger.debug(f'Received: {data}')
             await self.received.aemit(data)
 
-    async def connect(self) -> bool:
+    async def connect(self, host: str | None = None,
+                      port: int | None = None,
+                      need_read_task: bool = True) -> bool:
+        self._host = host if host else self._host
+        self._port = port if port else self._port
         if self._connection_status:
             return True
         # self._running_flag = True
@@ -48,8 +53,9 @@ class SocketClient():
             self._connection_status = True
             self._running_flag = True
             logger.success(f'Connected to server {self._host}:{self._port}')
-            loop = asyncio.get_running_loop()
-            loop.create_task(self._read_routine())
+            if need_read_task:
+                loop = asyncio.get_running_loop()
+                self.read_task = loop.create_task(self._read_routine())
             await self.connected.aemit()
             return True
         except ConnectionRefusedError as err:
@@ -71,13 +77,17 @@ class SocketClient():
             try:
                 self.writer.write(data)
                 await self.writer.drain()
-                self.transmited.emit(data)
+                await self.transmited.aemit(data)
             except ConnectionError:
                 logger.debug("Client suddenly closed, cannot send")
                 await self.disconnect()
         else:
             logger.warning('Not connected to server')
 
+    async def txrx(self, data: bytes) -> bytes:
+        await self.send(data)
+        answer: bytes = await asyncio.wait_for(self.reader.read(1024), 1)
+        return answer
 
 # if __name__ == '__main__':
 #     client = SocketClient('localhost', 8087)

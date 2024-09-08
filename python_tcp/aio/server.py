@@ -38,11 +38,11 @@ class SocketServer:
         logger.debug(f"Connected by {addr}")
         while True:
             try:
-                data: bytes = await reader.read(1024)
+                data: bytes = await reader.read(16000)
                 if not data:
                     logger.warning(f'Got empty data from {addr}')
                     break
-                logger.debug(f'from {addr} got msg: {data}')
+                logger.debug(f'from {addr} got msg[{len(data)}]: {data}')
                 await self.received.aemit(ReceivedData(writer, data, addr[0]))
             except ConnectionError:
                 logger.debug(f"Client suddenly closed while receiving from {addr}")
@@ -66,6 +66,8 @@ class SocketServer:
                 try:
                     sock.write(data)
                     await sock.drain()
+                    await self.transmited.aemit(data)
+                    logger.debug(f'gateway TX to {client_ip}: {data}')
                 except ConnectionError:
                     logger.debug("Client suddenly closed, cannot send")
                     await self._disconnection_handler(sock)
