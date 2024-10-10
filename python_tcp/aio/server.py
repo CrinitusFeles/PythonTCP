@@ -34,7 +34,7 @@ class SocketServer:
                       writer: asyncio.StreamWriter) -> None:
         addr: tuple[str, int] = writer.get_extra_info("peername")
         self.clients.setdefault(addr[0], []).append(writer)
-        await self.client_connected.aemit(addr)
+        self.client_connected.emit(addr)
         logger.debug(f"Connected by {addr}")
         while True:
             try:
@@ -43,7 +43,7 @@ class SocketServer:
                     logger.warning(f'Got empty data from {addr}')
                     break
                 logger.debug(f'from {addr} got msg[{len(data)}]: {data}')
-                await self.received.aemit(ReceivedData(writer, data, addr[0]))
+                self.received.emit(ReceivedData(writer, data, addr[0]))
             except ConnectionError:
                 logger.debug(f"Client suddenly closed while receiving from {addr}")
                 break
@@ -52,7 +52,7 @@ class SocketServer:
     async def _disconnection_handler(self, writer: StreamWriter) -> None:
         addr: tuple[str, int] = writer.get_extra_info("peername")
         writer.close()
-        await self.client_disconnected.aemit(addr)
+        self.client_disconnected.emit(addr)
         del self.clients[addr[0]]
         logger.debug(f"Disconnected by {addr}")
 
@@ -66,7 +66,7 @@ class SocketServer:
                 try:
                     sock.write(data)
                     await sock.drain()
-                    await self.transmited.aemit(data)
+                    self.transmited.emit(data)
                     logger.debug(f'gateway TX to {client_ip}: {data}')
                 except ConnectionError:
                     logger.debug("Client suddenly closed, cannot send")

@@ -37,7 +37,7 @@ class SocketClient():
                 logger.warning('Got empty data')
                 break
             logger.debug(f'Received: {data}')
-            await self.received.aemit(data)
+            self.received.emit(data)
 
     async def connect(self, host: str | None = None,
                       port: int | None = None,
@@ -56,11 +56,11 @@ class SocketClient():
             if need_read_task:
                 loop = asyncio.get_running_loop()
                 self.read_task = loop.create_task(self._read_routine())
-            await self.connected.aemit()
+            self.connected.emit()
             return True
         except ConnectionRefusedError as err:
             logger.debug(err)
-            await self.error.aemit(err)
+            self.error.emit(err)
             return False
 
     async def disconnect(self) -> None:
@@ -70,14 +70,14 @@ class SocketClient():
             self.writer.close()
             await self.writer.wait_closed()
             logger.debug('Disconnected from server')
-            await self.disconnected.aemit()
+            self.disconnected.emit()
 
     async def send(self, data: bytes) -> None:
         if self._connection_status:
             try:
                 self.writer.write(data)
                 await self.writer.drain()
-                await self.transmited.aemit(data)
+                self.transmited.emit(data)
             except ConnectionError:
                 logger.debug("Client suddenly closed, cannot send")
                 await self.disconnect()
