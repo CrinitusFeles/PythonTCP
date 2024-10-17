@@ -45,7 +45,8 @@ class SocketServer:
                 logger.debug(f'from {addr} got msg[{len(data)}]: {data}')
                 self.received.emit(ReceivedData(writer, data, addr[0]))
             except ConnectionError:
-                logger.debug(f"Client suddenly closed while receiving from {addr}")
+                logger.debug(f"Client suddenly closed while receiving "\
+                             f"from {addr}")
                 break
         await self._disconnection_handler(writer)
 
@@ -67,7 +68,8 @@ class SocketServer:
                     sock.write(data)
                     await sock.drain()
                     self.transmited.emit(data)
-                    logger.debug(f'gateway TX to {client_ip}: {data}')
+                    logger.debug(f'gateway TX to {client_ip}: '\
+                                 f'{data.hex(" ").upper()}')
                 except ConnectionError:
                     logger.debug("Client suddenly closed, cannot send")
                     await self._disconnection_handler(sock)

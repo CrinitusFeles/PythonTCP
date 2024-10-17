@@ -36,7 +36,7 @@ class SocketClient():
             if not data:
                 logger.warning('Got empty data')
                 break
-            logger.debug(f'Received: {data}')
+            logger.debug(f'Received: {data.hex(" ").upper()}')
             self.received.emit(data)
 
     async def connect(self, host: str | None = None,
