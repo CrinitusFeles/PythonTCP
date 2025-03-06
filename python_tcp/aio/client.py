@@ -31,13 +31,16 @@ class SocketClient():
         self.read_task: asyncio.Task
 
     async def _read_routine(self):
-        while self._running_flag:
-            data: bytes = await self.reader.read(1024)
-            if not data:
-                logger.warning('Got empty data')
-                break
-            logger.debug(f'Received: {data.hex(" ").upper()}')
-            self.received.emit(data)
+        try:
+            while self._running_flag:
+                data: bytes = await self.reader.read(4096)
+                if not data:
+                    logger.warning('Got empty data')
+                    break
+                logger.debug(f'Received: {data.hex(" ").upper()}')
+                self.received.emit(data)
+        except asyncio.CancelledError:
+            logger.debug('stop reading')
 
     async def connect(self, host: str | None = None,
                       port: int | None = None,
@@ -70,6 +73,7 @@ class SocketClient():
             self.writer.close()
             await self.writer.wait_closed()
             logger.debug('Disconnected from server')
+            self.read_task.cancel()
             self.disconnected.emit()
 
     async def send(self, data: bytes) -> None:
@@ -88,9 +92,3 @@ class SocketClient():
         await self.send(data)
         answer: bytes = await asyncio.wait_for(self.reader.read(1024), 1)
         return answer
-
-# if __name__ == '__main__':
-#     client = SocketClient('localhost', 8087)
-#     asyncio.run(client.routine())
-#     loop = asyncio.get_running_loop()
-#     loop.create_task(cli(client.writer))
